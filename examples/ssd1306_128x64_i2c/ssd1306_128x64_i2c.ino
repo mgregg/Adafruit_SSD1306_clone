@@ -1,13 +1,26 @@
-/* Single I2C Mini OLED Sample Code
-  -CS pin is disconnected
-*/
+/*********************************************************************
+This is an example for our Monochrome OLEDs based on SSD1306 drivers
 
-#define OLED_RESET 13  //Pin # the OLED module's RST pin is connected to.
+  Pick one up today in the adafruit shop!
+  ------> http://www.adafruit.com/category/63_98
+
+This example is for a 128x64 size display using I2C to communicate
+3 pins are required to interface (2 I2C and one reset)
+
+Adafruit invests time and resources providing this open source code, 
+please support Adafruit and open-source hardware by purchasing 
+products from Adafruit!
+
+Written by Limor Fried/Ladyada  for Adafruit Industries.  
+BSD license, check license.txt for more information
+All text above, and the splash screen must be included in any redistribution
+*********************************************************************/
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
+#define OLED_RESET 4
 Adafruit_SSD1306 display(OLED_RESET);
 
 #define NUMFLAKES 10
@@ -18,39 +31,37 @@ Adafruit_SSD1306 display(OLED_RESET);
 
 #define LOGO16_GLCD_HEIGHT 16 
 #define LOGO16_GLCD_WIDTH  16 
-
 static unsigned char __attribute__ ((progmem)) logo16_glcd_bmp[]={
 0x30, 0xf0, 0xf0, 0xf0, 0xf0, 0x30, 0xf8, 0xbe, 0x9f, 0xff, 0xf8, 0xc0, 0xc0, 0xc0, 0x80, 0x00, 
 0x20, 0x3c, 0x3f, 0x3f, 0x1f, 0x19, 0x1f, 0x7b, 0xfb, 0xfe, 0xfe, 0x07, 0x07, 0x07, 0x03, 0x00, };
 
+#if (SSD1306_LCDHEIGHT != 64)
+#error("Height incorrect, please fix Adafruit_SSD1306.h!");
+#endif
 
-void setup()   {                  
-  Serial.begin(38400); // start serial for output
+void setup()   {                
+  Serial.begin(9600);
+
   // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
-  display.begin(SSD1306_SWITCHCAPVCC);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3D);  // initialize with the I2C addr 0x3D (for the 128x64)
   // init done
   
   display.display(); // show splashscreen
   delay(2000);
   display.clearDisplay();   // clears the screen and buffer
-  
+
   // draw a single pixel
-  display.fillRect(0, 0, display.width()-1, display.height()-1, WHITE);
+  display.drawPixel(10, 10, WHITE);
   display.display();
   delay(2000);
   display.clearDisplay();
-  
+
   // draw many lines
   testdrawline();
   display.display();
   delay(2000);
   display.clearDisplay();
 
-  // draw zooming text
-  testscrolltext();
-  delay(2000);
-  display.clearDisplay();
-  
   // draw rectangles
   testdrawrect();
   display.display();
@@ -112,7 +123,7 @@ void setup()   {
 
   // miniature bitmap display
   display.clearDisplay();
-  display.drawBitmap(16, 0,  logo16_glcd_bmp, 16, 16, 1);
+  display.drawBitmap(30, 16,  logo16_glcd_bmp, 16, 16, 1);
   display.display();
 
   // invert the display
@@ -120,7 +131,7 @@ void setup()   {
   delay(1000); 
   display.invertDisplay(false);
   delay(1000); 
-  display.clearDisplay();
+
   // draw a bitmap icon and 'animate' movement
   testdrawbitmap(logo16_glcd_bmp, LOGO16_GLCD_HEIGHT, LOGO16_GLCD_WIDTH);
 }
@@ -172,30 +183,6 @@ void testdrawbitmap(const uint8_t *bitmap, uint8_t w, uint8_t h) {
    }
 }
 
-
-void testscrolltext(void) {
-  display.setTextSize(2);
-  display.setTextColor(WHITE);
-  display.setCursor(10,0);
-  display.clearDisplay();
-  display.println("scroll");
-  display.display();
- 
-  display.startscrollright(0x00, 0x0F);
-  delay(2000);
-  display.stopscroll();
-  display.startscrollleft(0x00, 0x0F);
-  delay(2000);
-  display.stopscroll();
-  delay(1000);    
-  display.startscrolldiagright(0x00, 0x07);
-  delay(2000);
-  display.stopscroll();
-  display.startscrolldiagleft(0x00, 0x07);
-  delay(2000);
-  display.stopscroll();
-
-}
 
 void testdrawchar(void) {
   display.setTextSize(1);

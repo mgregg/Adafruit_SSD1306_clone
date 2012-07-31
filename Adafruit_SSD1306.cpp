@@ -45,7 +45,6 @@ static uint8_t buffer[SSD1306_LCDHEIGHT * SSD1306_LCDWIDTH / 8] = {
 0x00, 0x00, 0x00, 0x00, 0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xF8, 0xE0, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x80, 0x80,
 0x80, 0x80, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0xFF,
-#if (SSD1306_LCDHEIGHT * SSD1306_LCDWIDTH > 96*16)
 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00,
 0x80, 0xFF, 0xFF, 0x80, 0x80, 0x00, 0x80, 0x80, 0x00, 0x80, 0x80, 0x80, 0x80, 0x00, 0x80, 0x80,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x8C, 0x8E, 0x84, 0x00, 0x00, 0x80, 0xF8,
@@ -100,7 +99,6 @@ static uint8_t buffer[SSD1306_LCDHEIGHT * SSD1306_LCDWIDTH / 8] = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 #endif
-#endif
 };
 
 
@@ -133,16 +131,31 @@ void Adafruit_SSD1306::drawPixel(int16_t x, int16_t y, uint16_t color) {
     buffer[x+ (y/8)*SSD1306_LCDWIDTH] &= ~_BV((y%8)); 
 }
 
-void Adafruit_SSD1306::begin(uint8_t vccstate) {
-#if DISPLAY_TYPE == SSD1306_128_64
+Adafruit_SSD1306::Adafruit_SSD1306(int8_t SID, int8_t SCLK, int8_t DC, int8_t RST, int8_t CS) {
+  cs = CS;
+  rst = RST;
+  dc = DC;
+  sclk = SCLK;
+  sid = SID;
+}
+
+// initializer for I2C - we only indicate the reset pin!
+Adafruit_SSD1306::Adafruit_SSD1306(int8_t reset) {
+  sclk = dc = cs = sid = -1;
+  rst = reset;
+}
+  
+
+void Adafruit_SSD1306::begin(uint8_t vccstate, uint8_t i2caddr) {
+#ifdef SSD1306_128_64
   constructor(128, 64);
 #endif
-#if DISPLAY_TYPE == SSD1306_128_32
+#ifdef SSD1306_128_32
   constructor(128, 32);
 #endif
-#if DISPLAY_TYPE == SSD1306_96_16
-  constructor(96, 16);
-#endif
+
+  _i2caddr = i2caddr;
+
 
   // set pin directions
   if (sid != -1)
@@ -180,7 +193,7 @@ void Adafruit_SSD1306::begin(uint8_t vccstate) {
   digitalWrite(rst, HIGH);
   // turn on VCC (9V?)
 
-   #if DISPLAY_TYPE == SSD1306_128_32
+   #if defined SSD1306_128_32
     // Init sequence for 128x32 OLED module
     ssd1306_command(SSD1306_DISPLAYOFF);                    // 0xAE
     ssd1306_command(SSD1306_SETDISPLAYCLOCKDIV);            // 0xD5
@@ -213,7 +226,8 @@ void Adafruit_SSD1306::begin(uint8_t vccstate) {
     ssd1306_command(SSD1306_DISPLAYALLON_RESUME);           // 0xA4
     ssd1306_command(SSD1306_NORMALDISPLAY);                 // 0xA6
   #endif
-  #if DISPLAY_TYPE == SSD1306_128_64
+
+  #if defined SSD1306_128_64
     // Init sequence for 128x64 OLED module
     ssd1306_command(SSD1306_DISPLAYOFF);                    // 0xAE
     ssd1306_command(SSD1306_SETDISPLAYCLOCKDIV);            // 0xD5
@@ -248,52 +262,8 @@ void Adafruit_SSD1306::begin(uint8_t vccstate) {
     ssd1306_command(0x40);
     ssd1306_command(SSD1306_DISPLAYALLON_RESUME);           // 0xA4
     ssd1306_command(SSD1306_NORMALDISPLAY);                 // 0xA6
-	#endif
-    #if DISPLAY_TYPE == SSD1306_96_16
-    // Init sequence for 96x16 OLED module
-    ssd1306_command(SSD1306_DISPLAYOFF);                    // 0xAE
-    ssd1306_command(SSD1306_SETDISPLAYCLOCKDIV);            // 0xD5
-    ssd1306_command(0x80);                                  // the suggested ratio 0x80
-    ssd1306_command(SSD1306_SETMULTIPLEX);                  // 0xA8
-    ssd1306_command(0x0F);
-    ssd1306_command(SSD1306_SETDISPLAYOFFSET);              // 0xD3
-    ssd1306_command(0x00);                                   // no offset
-    ssd1306_command(SSD1306_SETSTARTLINE | 0x08);            // line #0
-    ssd1306_command(SSD1306_CHARGEPUMP);                    // 0x8D
-    if (vccstate == SSD1306_EXTERNALVCC) 
-      { ssd1306_command(0x10); }
-    else 
-      { ssd1306_command(0x14); }
-    ssd1306_command(SSD1306_MEMORYMODE);                    // 0x20
-    ssd1306_command(0x00);                                  // 0x0 act like ks0108
-	ssd1306_command(0x21);
-	ssd1306_command(0);
-	ssd1306_command(95);
-	ssd1306_command(0x22);
-	ssd1306_command(0x0);
-	ssd1306_command(0x1);
-    ssd1306_command(SSD1306_SEGREMAP | 0x1);
-    ssd1306_command(SSD1306_COMSCANDEC);
-    ssd1306_command(SSD1306_SETCOMPINS);                    // 0xDA
-    ssd1306_command(0x2);	//ada x12
-    ssd1306_command(SSD1306_SETCONTRAST);                   // 0x81
-    if (vccstate == SSD1306_EXTERNALVCC) 
-      { ssd1306_command(0x10); }
-    else 
-      { ssd1306_command(0xAF); }
-    ssd1306_command(SSD1306_SETPRECHARGE);                  // 0xd9
-    if (vccstate == SSD1306_EXTERNALVCC) 
-      { ssd1306_command(0x22); }
-    else 
-      { ssd1306_command(0xF1); }
-    ssd1306_command(SSD1306_SETVCOMDETECT);                 // 0xDB
-    ssd1306_command(0x40);
-    ssd1306_command(SSD1306_DISPLAYALLON_RESUME);           // 0xA4
-    ssd1306_command(SSD1306_NORMALDISPLAY);                 // 0xA6
-
-    #endif
-  clearDisplay();
-  display();
+  #endif
+  
   ssd1306_command(SSD1306_DISPLAYON);//--turn on oled panel
 }
 
@@ -307,99 +277,53 @@ void Adafruit_SSD1306::invertDisplay(uint8_t i) {
 }
 
 void Adafruit_SSD1306::ssd1306_command(uint8_t c) { 
- 
+  if (sid != -1)
+  {
+    // SPI
+    //digitalWrite(cs, HIGH);
+    *csport |= cspinmask;
+    //digitalWrite(dc, LOW);
+    *dcport &= ~dcpinmask;
+    //digitalWrite(cs, LOW);
+    *csport &= ~cspinmask;
+    fastSPIwrite(c);
+    //digitalWrite(cs, HIGH);
+    *csport |= cspinmask;
+  }
+  else
+  {
     // I2C
     uint8_t control = 0x00;   // Co = 0, D/C = 0
-    Wire.beginTransmission(SSD1306_I2C_ADDRESS);
+    Wire.beginTransmission(_i2caddr);
     Wire.write(control);
     Wire.write(c);
     Wire.endTransmission();
-  
+  }
 }
 
 void Adafruit_SSD1306::ssd1306_data(uint8_t c) {
- 
+  if (sid != -1)
+  {
+    // SPI
+    //digitalWrite(cs, HIGH);
+    *csport |= cspinmask;
+    //digitalWrite(dc, HIGH);
+    *dcport |= dcpinmask;
+    //digitalWrite(cs, LOW);
+    *csport &= ~cspinmask;
+    fastSPIwrite(c);
+    //digitalWrite(cs, HIGH);
+    *csport |= cspinmask;
+  }
+  else
+  {
     // I2C
     uint8_t control = 0x40;   // Co = 0, D/C = 1
-    Wire.beginTransmission(SSD1306_I2C_ADDRESS);
+    Wire.beginTransmission(_i2caddr);
     Wire.write(control);
     Wire.write(c);
     Wire.endTransmission();
-  
-}
-
-void Adafruit_SSD1306::setContrast(uint8_t i){
-	ssd1306_command(SSD1306_SETCONTRAST);
-	ssd1306_command(i);
-}
-
-// startscrollright
-// Activate a right handed scroll for rows start through stop
-// Hint, the display is 16 rows tall. To scroll the whole display, run:
-// display.scrollright(0x00, 0x0F) 
-void Adafruit_SSD1306::startscrollright(uint8_t start, uint8_t stop){
-	ssd1306_command(SSD1306_RIGHT_HORIZONTAL_SCROLL);
-	ssd1306_command(0X00);
-	ssd1306_command(start);
-	ssd1306_command(0X00);
-	ssd1306_command(stop);
-	ssd1306_command(0X01);
-	ssd1306_command(0XFF);
-	ssd1306_command(SSD1306_ACTIVATE_SCROLL);
-}
-
-// startscrollleft
-// Activate a right handed scroll for rows start through stop
-// Hint, the display is 16 rows tall. To scroll the whole display, run:
-// display.scrollright(0x00, 0x0F) 
-void Adafruit_SSD1306::startscrollleft(uint8_t start, uint8_t stop){
-	ssd1306_command(SSD1306_LEFT_HORIZONTAL_SCROLL);
-	ssd1306_command(0X00);
-	ssd1306_command(start);
-	ssd1306_command(0X00);
-	ssd1306_command(stop);
-	ssd1306_command(0X01);
-	ssd1306_command(0XFF);
-	ssd1306_command(SSD1306_ACTIVATE_SCROLL);
-}
-
-// startscrolldiagright
-// Activate a diagonal scroll for rows start through stop
-// Hint, the display is 16 rows tall. To scroll the whole display, run:
-// display.scrollright(0x00, 0x0F) 
-void Adafruit_SSD1306::startscrolldiagright(uint8_t start, uint8_t stop){
-	ssd1306_command(SSD1306_SET_VERTICAL_SCROLL_AREA);	
-	ssd1306_command(0X00);
-	ssd1306_command(SSD1306_LCDHEIGHT);
-	ssd1306_command(SSD1306_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL);
-	ssd1306_command(0X00);
-	ssd1306_command(start);
-	ssd1306_command(0X00);
-	ssd1306_command(stop);
-	ssd1306_command(0X01);
-	ssd1306_command(SSD1306_ACTIVATE_SCROLL);
-}
-
-// startscrolldiagleft
-// Activate a diagonal scroll for rows start through stop
-// Hint, the display is 16 rows tall. To scroll the whole display, run:
-// display.scrollright(0x00, 0x0F) 
-void Adafruit_SSD1306::startscrolldiagleft(uint8_t start, uint8_t stop){
-	ssd1306_command(SSD1306_SET_VERTICAL_SCROLL_AREA);	
-	ssd1306_command(0X00);
-	ssd1306_command(SSD1306_LCDHEIGHT);
-	ssd1306_command(SSD1306_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL);
-	ssd1306_command(0X00);
-	ssd1306_command(start);
-	ssd1306_command(0X00);
-	ssd1306_command(stop);
-	ssd1306_command(0X01);
-	ssd1306_command(SSD1306_ACTIVATE_SCROLL);
-}
-
-// Stops any scroll that has been started
-void Adafruit_SSD1306::stopscroll(void) {
-	ssd1306_command(SSD1306_DEACTIVATE_SCROLL);
+  }
 }
 
 void Adafruit_SSD1306::display(void) {
@@ -407,6 +331,28 @@ void Adafruit_SSD1306::display(void) {
   ssd1306_command(SSD1306_SETHIGHCOLUMN | 0x0);  // hi col = 0
   ssd1306_command(SSD1306_SETSTARTLINE | 0x0); // line #0
 
+  if (sid != -1)
+  {
+    // SPI
+    *csport |= cspinmask;
+    *dcport |= dcpinmask;
+    *csport &= ~cspinmask;
+
+    for (uint16_t i=0; i<(SSD1306_LCDWIDTH*SSD1306_LCDHEIGHT/8); i++) {
+      fastSPIwrite(buffer[i]);
+      //ssd1306_data(buffer[i]);
+    }
+    // i wonder why we have to do this (check datasheet)
+    if (SSD1306_LCDHEIGHT == 32) {
+      for (uint16_t i=0; i<(SSD1306_LCDWIDTH*SSD1306_LCDHEIGHT/8); i++) {
+        //ssd1306_data(0);
+        fastSPIwrite(0);
+      }
+    }
+    *csport |= cspinmask;
+  }
+  else
+  {
     // save I2C bitrate
     uint8_t twbrbackup = TWBR;
     TWBR = 12; // upgrade to 400KHz!
@@ -417,11 +363,11 @@ void Adafruit_SSD1306::display(void) {
     // I2C
     for (uint16_t i=0; i<(SSD1306_LCDWIDTH*SSD1306_LCDHEIGHT/8); i++) {
       // send a bunch of data in one xmission
-      Wire.beginTransmission(SSD1306_I2C_ADDRESS);
+      Wire.beginTransmission(_i2caddr);
       Wire.write(0x40);
       for (uint8_t x=0; x<16; x++) {
-		Wire.write(buffer[i]);
-		i++;
+	Wire.write(buffer[i]);
+	i++;
       }
       i--;
       Wire.endTransmission();
@@ -430,21 +376,46 @@ void Adafruit_SSD1306::display(void) {
     if (SSD1306_LCDHEIGHT == 32) {
       for (uint16_t i=0; i<(SSD1306_LCDWIDTH*SSD1306_LCDHEIGHT/8); i++) {
 	// send a bunch of data in one xmission
-		Wire.beginTransmission(SSD1306_I2C_ADDRESS);
-		Wire.write(0x40);
-		for (uint8_t x=0; x<16; x++) {
-			Wire.write((uint8_t)0x00);
-			i++;
-		}
-		i--;
-		Wire.endTransmission();
+	Wire.beginTransmission(_i2caddr);
+	Wire.write(0x40);
+	for (uint8_t x=0; x<16; x++) {
+	  Wire.write((uint8_t)0x00);
+	  i++;
+	}
+	i--;
+	Wire.endTransmission();
       }
     }
     TWBR = twbrbackup;
+  }
 }
 
 // clear everything
 void Adafruit_SSD1306::clearDisplay(void) {
   memset(buffer, 0, (SSD1306_LCDWIDTH*SSD1306_LCDHEIGHT/8));
+}
+
+
+inline void Adafruit_SSD1306::fastSPIwrite(uint8_t d) {
+  
+  for(uint8_t bit = 0x80; bit; bit >>= 1) {
+    *clkport &= ~clkpinmask;
+    if(d & bit) *mosiport |=  mosipinmask;
+    else        *mosiport &= ~mosipinmask;
+    *clkport |=  clkpinmask;
+  }
+  //*csport |= cspinmask;
+}
+
+inline void Adafruit_SSD1306::slowSPIwrite(uint8_t d) {
+ for (int8_t i=7; i>=0; i--) {
+   digitalWrite(sclk, LOW);
+   if (d & _BV(i)) {
+     digitalWrite(sid, HIGH);
+   } else {
+     digitalWrite(sid, LOW);
+   }
+   digitalWrite(sclk, HIGH);
+ }
 }
 

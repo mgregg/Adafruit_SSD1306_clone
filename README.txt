@@ -1,8 +1,10 @@
-This is a our graphics core library, for all our displays. We'll be adapting all the
-existing libaries to use this core to make updating, support and upgrading easier!
+This is a library for our Monochrome OLEDs based on SSD1306 drivers
 
-At this time, only the SSD1306 library uses it - but we'll be adding more!
-    https://github.com/adafruit/Adafruit_SSD1306
+  Pick one up today in the adafruit shop!
+  ------> http://www.adafruit.com/category/63_98
+
+These displays use SPI to communicate, 4 or 5 pins are required to  
+interface
 
 Adafruit invests time and resources providing this open source code, 
 please support Adafruit and open-source hardware by purchasing 
@@ -12,15 +14,10 @@ Written by Limor Fried/Ladyada  for Adafruit Industries.
 BSD license, check license.txt for more information
 All text above must be included in any redistribution
 
-To download. click the DOWNLOADS button in the top right corner, rename the uncompressed folder Adafruit_GFX. Check that the Adafruit_GFX folder contains Adafruit_GFX.cpp and Adafruit_GFX.h
+To download. click the DOWNLOADS button in the top right corner, rename the uncompressed folder Adafruit_SSD1306. Check that the Adafruit_SSD1306 folder contains Adafruit_SSD1306.cpp and Adafruit_SSD1306.h
 
-Place the Adafruit_GFX library folder your <arduinosketchfolder>/libraries/ folder. You may need to create the libraries subfolder if its your first library. Restart the IDE.
+Place the Adafruit_SSD1306 library folder your <arduinosketchfolder>/libraries/ folder. You may need to create the libraries subfolder if its your first library. Restart the IDE.
 
-
-
-Modified June 10, 2012 by Sabernetics,  Added support for Mini I2C OLED 96x16 display. See Below for additional instructions.
-
-To install for Arduino:
-Copy the "OLED_I2C" folder to your Arduino Library folder "arduino-1.0.1/libraries/".  Restart the Arduino IDE. Navigate to File>>Examples>>OLED_I2C for the single and multi OLED sample code.
-
-Check the "Adafruit_GFX.h" and "Adafruit_SSD1306.h" header files for a complete list of display functions.
+You will also have to download the Adafruit GFX Graphics core which does all the circles, text, rectangles, etc. You can get it from
+https://github.com/adafruit/Adafruit-GFX-Library
+and download/install that library as well 
